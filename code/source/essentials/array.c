@@ -25,7 +25,6 @@ ZPL_NEVER_INLINE void *zpl__array_set_capacity(void *array, zpl_isize capacity, 
         zpl_memmove(nh, h, zpl_size_of(zpl_array_header) + element_size * h->count);
         nh->allocator = h->allocator;
         nh->count = h->count;
-        nh->data = (char *)nh + 1;
         nh->capacity = capacity;
         zpl_free(h->allocator, h);
         return nh + 1;

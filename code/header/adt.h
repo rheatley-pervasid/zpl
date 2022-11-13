@@ -51,6 +51,7 @@ typedef enum zpl_adt_error {
     ZPL_ADT_ERROR_INTERNAL,
     ZPL_ADT_ERROR_ALREADY_CONVERTED,
     ZPL_ADT_ERROR_INVALID_TYPE,
+    ZPL_ADT_ERROR_OUT_OF_MEMORY,
 } zpl_adt_error;
 
 typedef struct zpl_adt_node {

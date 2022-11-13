@@ -422,6 +422,8 @@ ZPL_IMPL_INLINE char *zpl_strdup(zpl_allocator a, char *src, zpl_isize max_len) 
     ZPL_ASSERT_NOT_NULL(src);
     zpl_isize len = zpl_strlen(src);
     char *dest = cast(char *) zpl_alloc(a, max_len);
+    if (!dest)
+        return NULL;
     zpl_memset(dest + len, 0, max_len - len);
     zpl_strncpy(dest, src, max_len);
 

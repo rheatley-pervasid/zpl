@@ -64,7 +64,6 @@ void foo(void) {
 ZPL_BEGIN_C_DECLS
 
 typedef struct zpl_array_header {
-    char *data;
     zpl_isize count;
     zpl_isize capacity;
     zpl_allocator allocator;
@@ -86,16 +85,21 @@ ZPL_STATIC_ASSERT(ZPL_ARRAY_GROW_FORMULA(0) > 0, "ZPL_ARRAY_GROW_FORMULA(0) <= 0
 #define zpl_array_capacity(x)  (ZPL_ARRAY_HEADER(x)->capacity)
 #define zpl_array_end(x)       (x + (zpl_array_count(x) - 1))
 
+ZPL_IMPL_INLINE void *zpl_array_alloc_reserve(zpl_allocator a, zpl_isize elem_size, zpl_isize cap) {
+    zpl_array_header *zpl__ah =
+        cast(zpl_array_header *) zpl_alloc(a, zpl_size_of(zpl_array_header) + elem_size * (cap));
+    zpl__ah->allocator = a;
+    zpl__ah->count = 0;
+    zpl__ah->capacity = cap;
+    return cast(void *)(zpl__ah + 1);
+}
+
+#define zpl_array_alloc(allocator, elem_size) zpl_array_alloc_reserve(allocator, elem_size, ZPL_ARRAY_GROW_FORMULA(0))
+
 #define zpl_array_init_reserve(x, allocator_, cap)                                                                     \
 do {                                                                                                               \
     void **zpl__array_ = cast(void **) & (x);                                                                      \
-    zpl_array_header *zpl__ah =                                                                                    \
-    cast(zpl_array_header *) zpl_alloc(allocator_, zpl_size_of(zpl_array_header) + zpl_size_of(*(x)) * (cap)); \
-    zpl__ah->allocator = allocator_;                                                                               \
-    zpl__ah->count = 0;                                                                                            \
-    zpl__ah->data = (char *)x;                                                                                     \
-    zpl__ah->capacity = cap;                                                                                       \
-    *zpl__array_ = cast(void *)(zpl__ah + 1);                                                                      \
+    *zpl__array_ = zpl_array_alloc_reserve(allocator_, zpl_size_of(*(x)), cap);                                    \
 } while (0)
 
 // NOTE: Give it an initial default capacity
