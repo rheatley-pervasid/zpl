@@ -64,6 +64,7 @@ void foo(void) {
 ZPL_BEGIN_C_DECLS
 
 typedef struct zpl_array_header {
+    zpl_isize elem_size;
     zpl_isize count;
     zpl_isize capacity;
     zpl_allocator allocator;
@@ -81,14 +82,17 @@ ZPL_STATIC_ASSERT(ZPL_ARRAY_GROW_FORMULA(0) > 0, "ZPL_ARRAY_GROW_FORMULA(0) <= 0
 
 #define ZPL_ARRAY_HEADER(x)    (cast(zpl_array_header *)(x) - 1)
 #define zpl_array_allocator(x) (ZPL_ARRAY_HEADER(x)->allocator)
+#define zpl_array_elem_size(x) (ZPL_ARRAY_HEADER(x)->elem_size)
 #define zpl_array_count(x)     (ZPL_ARRAY_HEADER(x)->count)
 #define zpl_array_capacity(x)  (ZPL_ARRAY_HEADER(x)->capacity)
 #define zpl_array_end(x)       (x + (zpl_array_count(x) - 1))
 
 ZPL_IMPL_INLINE void *zpl_array_alloc_reserve(zpl_allocator a, zpl_isize elem_size, zpl_isize cap) {
+    ZPL_ASSERT(elem_size > 0);
     zpl_array_header *zpl__ah =
         cast(zpl_array_header *) zpl_alloc(a, zpl_size_of(zpl_array_header) + elem_size * (cap));
     zpl__ah->allocator = a;
+    zpl__ah->elem_size = elem_size;
     zpl__ah->count = 0;
     zpl__ah->capacity = cap;
     return cast(void *)(zpl__ah + 1);
@@ -107,15 +111,35 @@ do {                                                                            
 
 #define zpl_array_free(x)                                                                                              \
 do {                                                                                                               \
-    zpl_array_header *zpl__ah = ZPL_ARRAY_HEADER(x);                                                               \
-    zpl_free(zpl__ah->allocator, zpl__ah);                                                                         \
+    if (x) {                                                                                                       \
+        zpl_array_header *zpl__ah = ZPL_ARRAY_HEADER(x);                                                           \
+        zpl_free(zpl__ah->allocator, zpl__ah);                                                                     \
+    }                                                                                                              \
 } while (0)
+
+ZPL_IMPL_INLINE void *zpl_array_realloc(void *array, zpl_isize capacity) {
+    zpl_array_header *h = ZPL_ARRAY_HEADER(array);
+    if (capacity == h->capacity) return array;
+    if (capacity < h->count) h->count = capacity;
+
+    zpl_isize size = zpl_size_of(zpl_array_header) + h->elem_size * capacity;
+    zpl_array_header *nh = cast(zpl_array_header *) zpl_alloc(h->allocator, size);
+    if (!nh)
+        return NULL;
+    zpl_memmove(nh, h, zpl_size_of(zpl_array_header) + h->elem_size * h->count);
+    nh->allocator = h->allocator;
+    nh->elem_size = h->elem_size;
+    nh->count = h->count;
+    nh->capacity = capacity;
+    zpl_free(h->allocator, h);
+    return nh + 1;
+}
 
 #define zpl_array_set_capacity(x, capacity)                                                                            \
 do {                                                                                                               \
     if (x) {                                                                                                       \
         void **zpl__array_ = cast(void **) & (x);                                                                  \
-        *zpl__array_ = zpl__array_set_capacity((x), (capacity), zpl_size_of(*(x)));                                \
+        *zpl__array_ = zpl_array_realloc((x), (capacity));                                                         \
     }                                                                                                              \
 } while (0)
 
@@ -177,11 +201,17 @@ do {                                                                            
     --zpl__ah->count;                                                                                              \
 } while (0)
 
+ZPL_IMPL_INLINE void *zpl_array_copy_alloc(void *x) {
+    void *y = zpl_array_alloc_reserve(zpl_array_allocator(x), zpl_array_elem_size(x), zpl_array_capacity(x));
+    if (!y) return NULL;
+    zpl_memcopy(y, x, zpl_array_capacity(x) * zpl_array_elem_size(x));
+    zpl_array_count(y) = zpl_array_count(x);
+}
+
 #define zpl_array_copy_init(y, x)                                                                                      \
 do {                                                                                                               \
-    zpl_array_init_reserve(y, zpl_array_allocator(x), zpl_array_capacity(x));                                      \
-    zpl_memcopy(y, x, zpl_array_capacity(x) * zpl_size_of(*x));                                                    \
-    zpl_array_count(y) = zpl_array_count(x);                                                                       \
+    void **zpl__array_ = cast(void **) & (y);                                                                      \
+    *zpl__array_ = zpl_array_copy_alloc(x);                                                                        \
 } while (0)
 
 #define zpl_array_pop(x)                                                                                               \

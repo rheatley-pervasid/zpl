@@ -8,7 +8,7 @@ zpl_u8 zpl_adt_make_branch(zpl_adt_node *node, zpl_allocator backing, char const
         type = ZPL_ADT_TYPE_ARRAY;
     }
     zpl_adt_node *parent = node->parent;
-    struct zpl_adt_node *nodes = (struct zpl_adt_node *)zpl_array_alloc(backing, sizeof(node->nodes));
+    struct zpl_adt_node *nodes = (struct zpl_adt_node *)zpl_array_alloc(backing, sizeof(*node->nodes));
     if (!nodes)
         return ZPL_ADT_ERROR_OUT_OF_MEMORY;
     zpl_zero_item(node);
