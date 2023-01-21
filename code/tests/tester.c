@@ -17,6 +17,7 @@
 #include "cases/print.h"
 #include "cases/adt.h"
 #include "cases/string.h"
+#include "cases/buffer.h"
 
 int main() {
     zpl_heap_stats_init();
@@ -33,6 +34,7 @@ int main() {
     UNIT_MODULE(csv_parser);
     UNIT_MODULE(adt);
     UNIT_MODULE(string);
+    UNIT_MODULE(buffer);
 
     int32_t ret_code = UNIT_RUN();
     zpl_heap_stats_check();
