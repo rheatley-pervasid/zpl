@@ -422,6 +422,7 @@ ZPL_IMPL_INLINE char *zpl_strdup(zpl_allocator a, char *src, zpl_isize max_len) 
     ZPL_ASSERT_NOT_NULL(src);
     zpl_isize len = zpl_strlen(src);
     char *dest = cast(char *) zpl_alloc(a, max_len);
+    if (!dest) return NULL;
     zpl_memset(dest + len, 0, max_len - len);
     zpl_strncpy(dest, src, max_len);
 
@@ -430,7 +431,7 @@ ZPL_IMPL_INLINE char *zpl_strdup(zpl_allocator a, char *src, zpl_isize max_len) 
 
 ZPL_IMPL_INLINE char **zpl_str_split_lines(zpl_allocator alloc, char *source, zpl_b32 strip_whitespace) {
     char **lines = NULL, *p = source, *pd = p;
-    zpl_array_init(lines, alloc);
+    if (!zpl_array_init(lines, alloc)) return NULL;
 
     while (*p) {
         if (*pd == '\n') {
@@ -440,8 +441,18 @@ ZPL_IMPL_INLINE char **zpl_str_split_lines(zpl_allocator alloc, char *source, zp
                 p = pd + 1;
                 continue;
             }
-            zpl_array_append(lines, p);
+            if (!zpl_array_append(lines, p)) {
+                zpl_array_free(lines);
+                return NULL;
+            }
             p = pd + 1;
+        }
+        else if (*pd == 0) {
+            if (!zpl_array_append(lines, p)) {
+                zpl_array_free(lines);
+                return NULL;
+            }
+            break;
         }
         ++pd;
     }

@@ -16,6 +16,7 @@
 #include "cases/stream.h"
 #include "cases/print.h"
 #include "cases/adt.h"
+#include "cases/string.h"
 
 int main() {
     zpl_heap_stats_init();
@@ -31,6 +32,7 @@ int main() {
     UNIT_MODULE(json5_parser);
     UNIT_MODULE(csv_parser);
     UNIT_MODULE(adt);
+    UNIT_MODULE(string);
 
     int32_t ret_code = UNIT_RUN();
     zpl_heap_stats_check();
